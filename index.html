@@ -1,0 +1,933 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#111827" />
+  <title>Yacht Dice — počítadlo</title>
+  <style>
+    :root{
+      --bg:#0f172a;
+      --panel:#111827;
+      --panel-2:#172033;
+      --card:#ffffff;
+      --text:#0f172a;
+      --muted:#64748b;
+      --line:#e2e8f0;
+      --accent:#7c3aed;
+      --accent-2:#ede9fe;
+      --good:#15803d;
+      --good-bg:#dcfce7;
+      --warn:#b45309;
+      --warn-bg:#fef3c7;
+      --danger:#b91c1c;
+      --shadow:0 18px 50px rgba(2,6,23,.18);
+      --radius:20px;
+    }
+
+    *{box-sizing:border-box}
+    html{min-height:100%;background:var(--bg)}
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 15% 0%, rgba(124,58,237,.25), transparent 30rem),
+        linear-gradient(180deg,#111827 0%,#0f172a 45%,#0b1220 100%);
+      color:white;
+    }
+
+    button,input{font:inherit}
+
+    .app{
+      width:min(1180px,100%);
+      margin:0 auto;
+      padding:28px 18px 64px;
+    }
+
+    .topbar{
+      display:flex;
+      gap:18px;
+      align-items:flex-end;
+      justify-content:space-between;
+      margin-bottom:18px;
+    }
+
+    .brand h1{
+      margin:0;
+      font-size:clamp(30px,5vw,52px);
+      line-height:.95;
+      letter-spacing:-.04em;
+    }
+
+    .brand p{
+      margin:10px 0 0;
+      color:#cbd5e1;
+      font-size:14px;
+    }
+
+    .dice-mark{
+      display:inline-grid;
+      place-items:center;
+      width:46px;height:46px;
+      border-radius:14px;
+      background:white;
+      color:var(--accent);
+      margin-right:8px;
+      box-shadow:var(--shadow);
+      vertical-align:middle;
+    }
+
+    .toolbar{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      justify-content:flex-end;
+    }
+
+    .btn{
+      border:0;
+      border-radius:12px;
+      padding:11px 14px;
+      font-weight:750;
+      cursor:pointer;
+      transition:.16s ease;
+    }
+
+    .btn:hover{transform:translateY(-1px)}
+    .btn:active{transform:translateY(0)}
+
+    .btn-primary{background:#fff;color:#111827}
+    .btn-accent{background:var(--accent);color:white}
+    .btn-ghost{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.14)}
+    .btn-danger{background:#fee2e2;color:#991b1b}
+    .btn-small{padding:8px 10px;border-radius:10px;font-size:13px}
+
+    .card{
+      background:var(--card);
+      color:var(--text);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+
+    .score-wrap{overflow-x:auto;overscroll-behavior-inline:contain}
+    table{
+      border-collapse:separate;
+      border-spacing:0;
+      width:max(100%, 720px);
+      table-layout:fixed;
+    }
+
+    th,td{
+      border-bottom:1px solid var(--line);
+      border-right:1px solid var(--line);
+      text-align:center;
+      padding:10px 8px;
+      background:white;
+    }
+
+    th:first-child, td:first-child{
+      position:sticky;
+      left:0;
+      z-index:3;
+      text-align:left;
+      width:220px;
+      min-width:220px;
+      border-left:0;
+    }
+
+    thead th{
+      position:sticky;
+      top:0;
+      z-index:4;
+      background:#f8fafc;
+      min-width:150px;
+      padding:14px 10px;
+    }
+
+    thead th:first-child{z-index:6}
+    tr:last-child td{border-bottom:0}
+
+    .category-cell strong{
+      display:block;
+      font-size:15px;
+      line-height:1.15;
+    }
+    .category-cell small{
+      display:block;
+      margin-top:4px;
+      color:var(--muted);
+      font-size:11px;
+      font-weight:500;
+    }
+
+    .die-row{
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .die{
+      width:30px;height:30px;
+      display:inline-grid;
+      place-items:center;
+      border-radius:8px;
+      background:var(--accent-2);
+      color:var(--accent);
+      font-size:21px;
+      flex:0 0 auto;
+    }
+
+    .section-row td{
+      padding:8px 12px;
+      color:white;
+      background:#111827;
+      border-color:#111827;
+      font-weight:800;
+      font-size:12px;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+    }
+    .section-row td:first-child{background:#111827;color:white;z-index:4}
+
+    .player-head{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:7px;
+    }
+    .player-name{
+      border:0;
+      background:transparent;
+      width:100px;
+      min-width:0;
+      font-weight:850;
+      color:#111827;
+      text-align:center;
+      padding:4px 2px;
+      border-radius:8px;
+    }
+    .player-name:focus{outline:2px solid #c4b5fd;background:white}
+    .remove-player{
+      border:0;
+      background:#f1f5f9;
+      color:#64748b;
+      width:26px;height:26px;
+      border-radius:8px;
+      cursor:pointer;
+      font-weight:900;
+    }
+    .remove-player:hover{background:#fee2e2;color:#b91c1c}
+
+    .score-input{
+      width:82px;
+      max-width:100%;
+      border:1.5px solid #cbd5e1;
+      border-radius:11px;
+      padding:9px 8px;
+      text-align:center;
+      font-weight:800;
+      font-size:16px;
+      color:#111827;
+      background:#fff;
+    }
+    .score-input:focus{
+      outline:none;
+      border-color:var(--accent);
+      box-shadow:0 0 0 3px rgba(124,58,237,.13);
+    }
+    .score-input::placeholder{color:#cbd5e1;font-weight:600}
+
+    .subtotal-row td{background:#f8fafc;font-weight:800}
+    .subtotal-row td:first-child{background:#f8fafc}
+    .total-row td{
+      background:#111827;
+      color:white;
+      border-color:#111827;
+      font-size:19px;
+      font-weight:900;
+    }
+    .total-row td:first-child{background:#111827;color:white;z-index:4}
+
+    .bonus-chip{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      border-radius:999px;
+      padding:6px 9px;
+      font-size:12px;
+      font-weight:850;
+      white-space:nowrap;
+    }
+    .bonus-chip.pending{background:var(--warn-bg);color:var(--warn)}
+    .bonus-chip.hit{background:var(--good-bg);color:var(--good)}
+
+    .progress{
+      width:100%;
+      max-width:105px;
+      height:5px;
+      background:#e2e8f0;
+      border-radius:999px;
+      overflow:hidden;
+      margin:6px auto 0;
+    }
+    .progress > span{
+      display:block;
+      height:100%;
+      background:var(--accent);
+      border-radius:999px;
+      transition:width .2s ease;
+    }
+
+    .below{
+      display:grid;
+      grid-template-columns:1.15fr .85fr;
+      gap:18px;
+      margin-top:18px;
+    }
+
+    .panel{
+      background:rgba(255,255,255,.96);
+      color:var(--text);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:18px;
+    }
+    .panel h2{
+      margin:0;
+      font-size:20px;
+      letter-spacing:-.02em;
+    }
+    .panel-sub{
+      margin:5px 0 14px;
+      color:var(--muted);
+      font-size:13px;
+    }
+
+    .stats-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:10px;
+    }
+    .stat-card{
+      padding:13px;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:#fff;
+    }
+    .stat-name{
+      font-weight:900;
+      margin-bottom:8px;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .stat-numbers{
+      display:grid;
+      grid-template-columns:repeat(2,1fr);
+      gap:7px;
+    }
+    .metric{
+      background:#f8fafc;
+      border-radius:10px;
+      padding:8px;
+    }
+    .metric b{display:block;font-size:18px}
+    .metric span{font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:750;letter-spacing:.04em}
+
+    .actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:9px;
+      margin-top:14px;
+    }
+
+    .rules{
+      display:grid;
+      gap:9px;
+      font-size:13px;
+      color:#334155;
+    }
+    .rule{
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      padding:10px 11px;
+      background:#f8fafc;
+      border-radius:12px;
+    }
+    .rule b{color:#111827}
+    .rule-icon{
+      width:24px;height:24px;
+      display:grid;place-items:center;
+      flex:0 0 24px;
+      border-radius:7px;
+      background:var(--accent-2);
+      color:var(--accent);
+      font-weight:900;
+    }
+
+    .footer-note{
+      text-align:center;
+      color:#94a3b8;
+      font-size:12px;
+      margin-top:18px;
+    }
+
+    .empty-stats{
+      color:var(--muted);
+      background:#f8fafc;
+      border:1px dashed #cbd5e1;
+      border-radius:12px;
+      padding:16px;
+      font-size:13px;
+    }
+
+    .toast{
+      position:fixed;
+      left:50%;
+      bottom:24px;
+      transform:translate(-50%,18px);
+      opacity:0;
+      pointer-events:none;
+      background:#111827;
+      color:white;
+      padding:11px 14px;
+      border-radius:12px;
+      font-size:13px;
+      font-weight:750;
+      box-shadow:0 14px 40px rgba(0,0,0,.3);
+      transition:.2s ease;
+      z-index:50;
+    }
+    .toast.show{opacity:1;transform:translate(-50%,0)}
+
+    input[type=file]{display:none}
+
+    @media(max-width:760px){
+      .app{padding:18px 10px 48px}
+      .topbar{align-items:flex-start;flex-direction:column}
+      .toolbar{justify-content:flex-start}
+      .below{grid-template-columns:1fr}
+      .card,.panel{border-radius:16px}
+      th:first-child,td:first-child{width:165px;min-width:165px}
+      thead th{min-width:126px}
+      .category-cell strong{font-size:13px}
+      .category-cell small{font-size:10px}
+      .score-input{width:74px}
+    }
+
+    @media(max-width:440px){
+      .stats-grid{grid-template-columns:1fr}
+      .brand p{max-width:330px}
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <h1><span class="dice-mark">⚄</span>Yacht Dice</h1>
+        <p>Jednoduchá výsledkovka. Body i rozehraná hra se ukládají přímo v tomto zařízení.</p>
+      </div>
+      <div class="toolbar">
+        <button class="btn btn-ghost" id="newGameBtn">Nová hra</button>
+        <button class="btn btn-primary" id="addPlayerBtn">＋ Přidat hráče</button>
+        <button class="btn btn-accent" id="saveGameBtn">Uložit výsledek</button>
+      </div>
+    </header>
+
+    <section class="card">
+      <div class="score-wrap">
+        <table aria-label="Yacht Dice score sheet">
+          <thead>
+            <tr id="headerRow">
+              <th>Kombinace</th>
+            </tr>
+          </thead>
+          <tbody id="scoreBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="below">
+      <div class="panel">
+        <h2>Rekordy hráčů</h2>
+        <p class="panel-sub">Statistika se počítá z uložených dokončených her.</p>
+        <div id="statsGrid" class="stats-grid"></div>
+        <div class="actions">
+          <button class="btn btn-small btn-primary" id="exportBtn">Exportovat data</button>
+          <label class="btn btn-small btn-primary" for="importFile" style="display:inline-block">Importovat data</label>
+          <input id="importFile" type="file" accept="application/json,.json" />
+          <button class="btn btn-small btn-danger" id="resetStatsBtn">Smazat statistiky</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Pravidla počítání</h2>
+        <p class="panel-sub">Podle vašeho současného systému.</p>
+        <div class="rules">
+          <div class="rule">
+            <div class="rule-icon">63</div>
+            <div><b>Číselná část:</b> jedničky až šestky se sečtou. Při <b>63 bodech nebo více</b> dostane hráč <b>+30 bonus</b>.</div>
+          </div>
+          <div class="rule">
+            <div class="rule-icon">＋</div>
+            <div><b>Celkový výsledek</b> = číselná část + bonus + kombinace ve spodní části.</div>
+          </div>
+          <div class="rule">
+            <div class="rule-icon">↻</div>
+            <div>Aktuální hra se průběžně ukládá do <b>localStorage</b>, takže reload stránky body nesmaže.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer-note">Data zůstávají v prohlížeči. Pro přesun na jiné zařízení použij export / import.</div>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    (() => {
+      const STORAGE_KEY = "yachtDiceApp_v1";
+
+      const categories = [
+        { type:"section", label:"Číselná část" },
+        { id:"ones",   label:"Jedničky",  die:"⚀", hint:"součet jedniček", max:5 },
+        { id:"twos",   label:"Dvojky",    die:"⚁", hint:"součet dvojek", max:10 },
+        { id:"threes", label:"Trojky",    die:"⚂", hint:"součet trojek", max:15 },
+        { id:"fours",  label:"Čtyřky",    die:"⚃", hint:"součet čtyřek", max:20 },
+        { id:"fives",  label:"Pětky",     die:"⚄", hint:"součet pětek", max:25 },
+        { id:"sixes",  label:"Šestky",    die:"⚅", hint:"součet šestek", max:30 },
+        { type:"upperSubtotal" },
+        { type:"bonus" },
+        { type:"section", label:"Kombinace" },
+        { id:"smallStraight", label:"Malá postupka", hint:"typicky 30 bodů", max:30 },
+        { id:"largeStraight", label:"Velká postupka", hint:"typicky 30 bodů", max:30 },
+        { id:"fullHouse", label:"Full house", hint:"součet kostek", max:30 },
+        { id:"fourKind", label:"Čtveřice", hint:"součet kostek", max:30 },
+        { id:"chance", label:"Žolík", hint:"součet kostek", max:30 },
+        { id:"yacht", label:"Pětice", hint:"typicky 50 bodů", max:50 },
+        { type:"lowerSubtotal" },
+        { type:"total" }
+      ];
+
+      const upperIds = ["ones","twos","threes","fours","fives","sixes"];
+      const lowerIds = ["smallStraight","largeStraight","fullHouse","fourKind","chance","yacht"];
+
+      const uid = () =>
+        (crypto && crypto.randomUUID ? crypto.randomUUID() : "g-" + Date.now() + "-" + Math.random().toString(16).slice(2));
+
+      const defaultState = () => ({
+        version: 1,
+        currentGame: {
+          id: uid(),
+          players: [
+            { id: uid(), name: "Honzík", scores: {} },
+            { id: uid(), name: "Johanka", scores: {} }
+          ]
+        },
+        history: []
+      });
+
+      let state = loadState();
+
+      const headerRow = document.getElementById("headerRow");
+      const scoreBody = document.getElementById("scoreBody");
+      const statsGrid = document.getElementById("statsGrid");
+      const toastEl = document.getElementById("toast");
+
+      function loadState(){
+        try{
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if(!raw) return defaultState();
+          const parsed = JSON.parse(raw);
+          if(!parsed || !parsed.currentGame || !Array.isArray(parsed.currentGame.players)) return defaultState();
+          parsed.history = Array.isArray(parsed.history) ? parsed.history : [];
+          return parsed;
+        }catch{
+          return defaultState();
+        }
+      }
+
+      function saveState(){
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      }
+
+      function n(v){
+        const x = Number(v);
+        return Number.isFinite(x) ? x : 0;
+      }
+
+      function upperSubtotal(player){
+        return upperIds.reduce((sum,id) => sum + n(player.scores[id]), 0);
+      }
+
+      function bonus(player){
+        return upperSubtotal(player) >= 63 ? 30 : 0;
+      }
+
+      function lowerSubtotal(player){
+        return lowerIds.reduce((sum,id) => sum + n(player.scores[id]), 0);
+      }
+
+      function total(player){
+        return upperSubtotal(player) + bonus(player) + lowerSubtotal(player);
+      }
+
+      function hasAnyScore(player){
+        return [...upperIds, ...lowerIds].some(id =>
+          player.scores[id] !== undefined && player.scores[id] !== null && player.scores[id] !== ""
+        );
+      }
+
+      function displayNum(v){
+        return Number.isInteger(v) ? String(v) : v.toFixed(1);
+      }
+
+      function esc(s){
+        return String(s)
+          .replaceAll("&","&amp;")
+          .replaceAll("<","&lt;")
+          .replaceAll(">","&gt;")
+          .replaceAll('"',"&quot;");
+      }
+
+      function render(){
+        renderHeader();
+        renderBody();
+        renderStats();
+      }
+
+      function renderHeader(){
+        headerRow.innerHTML = "<th>Kombinace</th>";
+        state.currentGame.players.forEach(player => {
+          const th = document.createElement("th");
+          th.innerHTML = `
+            <div class="player-head">
+              <input class="player-name" aria-label="Jméno hráče" maxlength="30" value="${esc(player.name)}" data-player-name="${player.id}">
+              <button class="remove-player" title="Odebrat hráče" aria-label="Odebrat hráče" data-remove-player="${player.id}">×</button>
+            </div>`;
+          headerRow.appendChild(th);
+        });
+      }
+
+      function makeValueCells(row){
+        return state.currentGame.players.map(player => {
+          if(row.type === "upperSubtotal"){
+            const val = upperSubtotal(player);
+            return `<td><b>${val}</b></td>`;
+          }
+          if(row.type === "bonus"){
+            const up = upperSubtotal(player);
+            const pct = Math.min(100, (up/63)*100);
+            const hit = up >= 63;
+            return `<td>
+              <span class="bonus-chip ${hit ? "hit":"pending"}">${hit ? "+30 bonus" : up + " / 63"}</span>
+              <div class="progress"><span style="width:${pct}%"></span></div>
+            </td>`;
+          }
+          if(row.type === "lowerSubtotal"){
+            return `<td><b>${lowerSubtotal(player)}</b></td>`;
+          }
+          if(row.type === "total"){
+            return `<td>${total(player)}</td>`;
+          }
+
+          const value = player.scores[row.id] ?? "";
+          return `<td>
+            <input
+              class="score-input"
+              inputmode="numeric"
+              type="number"
+              min="0"
+              max="${row.max ?? 999}"
+              step="1"
+              placeholder="—"
+              value="${esc(value)}"
+              aria-label="${esc(row.label)} – ${esc(player.name)}"
+              data-score-player="${player.id}"
+              data-score-cat="${row.id}"
+            >
+          </td>`;
+        }).join("");
+      }
+
+      function renderBody(){
+        scoreBody.innerHTML = "";
+        categories.forEach(row => {
+          const tr = document.createElement("tr");
+
+          if(row.type === "section"){
+            tr.className = "section-row";
+            tr.innerHTML = `<td>${esc(row.label)}</td>` +
+              state.currentGame.players.map(() => `<td></td>`).join("");
+            scoreBody.appendChild(tr);
+            return;
+          }
+
+          if(row.type === "upperSubtotal"){
+            tr.className = "subtotal-row";
+            tr.innerHTML = `<td class="category-cell"><strong>Součet čísel</strong><small>bez bonusu</small></td>` + makeValueCells(row);
+          } else if(row.type === "bonus"){
+            tr.className = "subtotal-row";
+            tr.innerHTML = `<td class="category-cell"><strong>Bonus</strong><small>+30 při 63+</small></td>` + makeValueCells(row);
+          } else if(row.type === "lowerSubtotal"){
+            tr.className = "subtotal-row";
+            tr.innerHTML = `<td class="category-cell"><strong>Součet kombinací</strong></td>` + makeValueCells(row);
+          } else if(row.type === "total"){
+            tr.className = "total-row";
+            tr.innerHTML = `<td class="category-cell"><strong>Výsledek</strong></td>` + makeValueCells(row);
+          } else {
+            tr.innerHTML = `
+              <td class="category-cell">
+                <div class="die-row">
+                  ${row.die ? `<span class="die">${row.die}</span>` : ""}
+                  <div><strong>${esc(row.label)}</strong><small>${esc(row.hint || "")}</small></div>
+                </div>
+              </td>` + makeValueCells(row);
+          }
+          scoreBody.appendChild(tr);
+        });
+      }
+
+      function normalizedName(name){
+        return name.trim().toLocaleLowerCase("cs-CZ");
+      }
+
+      function computeStats(){
+        const map = new Map();
+
+        for(const game of state.history){
+          const entries = (game.players || []).filter(p => p.name && Number.isFinite(Number(p.total)));
+          if(entries.length === 0) continue;
+
+          const bestInGame = Math.max(...entries.map(p => Number(p.total)));
+          for(const p of entries){
+            const key = normalizedName(p.name);
+            if(!key) continue;
+            if(!map.has(key)){
+              map.set(key,{name:p.name.trim(),games:0,wins:0,best:0,totalScore:0});
+            }
+            const s = map.get(key);
+            s.name = p.name.trim();
+            s.games++;
+            s.totalScore += Number(p.total);
+            s.best = Math.max(s.best, Number(p.total));
+            if(Number(p.total) === bestInGame) s.wins++;
+          }
+        }
+
+        return [...map.values()]
+          .map(s => ({...s, average: s.games ? s.totalScore/s.games : 0}))
+          .sort((a,b) => b.best - a.best || a.name.localeCompare(b.name,"cs"));
+      }
+
+      function renderStats(){
+        const stats = computeStats();
+        if(stats.length === 0){
+          statsGrid.innerHTML = `<div class="empty-stats" style="grid-column:1/-1">Zatím tu nic není. Až dohraješ, klikni na <b>Uložit výsledek</b>.</div>`;
+          return;
+        }
+        statsGrid.innerHTML = stats.map(s => `
+          <div class="stat-card">
+            <div class="stat-name">${esc(s.name)}</div>
+            <div class="stat-numbers">
+              <div class="metric"><b>${displayNum(s.best)}</b><span>rekord</span></div>
+              <div class="metric"><b>${displayNum(s.average)}</b><span>průměr</span></div>
+              <div class="metric"><b>${s.wins}</b><span>výhry</span></div>
+              <div class="metric"><b>${s.games}</b><span>her</span></div>
+            </div>
+          </div>
+        `).join("");
+      }
+
+      function toast(msg){
+        toastEl.textContent = msg;
+        toastEl.classList.add("show");
+        clearTimeout(toast._t);
+        toast._t = setTimeout(() => toastEl.classList.remove("show"), 1800);
+      }
+
+      function addPlayer(){
+        if(state.currentGame.players.length >= 8){
+          toast("Maximum je 8 hráčů.");
+          return;
+        }
+        const name = prompt("Jméno hráče:");
+        if(name === null) return;
+        const clean = name.trim();
+        if(!clean) return;
+        state.currentGame.players.push({id:uid(), name:clean, scores:{}});
+        saveState();
+        render();
+      }
+
+      function removePlayer(id){
+        if(state.currentGame.players.length <= 1){
+          toast("Ve hře musí zůstat alespoň jeden hráč.");
+          return;
+        }
+        const p = state.currentGame.players.find(p => p.id === id);
+        if(!p) return;
+        if(!confirm(`Odebrat hráče ${p.name}?`)) return;
+        state.currentGame.players = state.currentGame.players.filter(p => p.id !== id);
+        saveState();
+        render();
+      }
+
+      function newGame(){
+        const any = state.currentGame.players.some(hasAnyScore);
+        if(any && !confirm("Začít novou hru? Aktuálně zadané body se vymažou.")) return;
+
+        state.currentGame = {
+          id: uid(),
+          players: state.currentGame.players.map(p => ({id:uid(), name:p.name, scores:{}}))
+        };
+        saveState();
+        render();
+        toast("Nová hra připravena.");
+      }
+
+      function saveGameResult(){
+        const players = state.currentGame.players;
+        if(players.length === 0) return;
+        if(!players.some(hasAnyScore)){
+          toast("Nejdřív zadej nějaké body.");
+          return;
+        }
+
+        const snapshot = {
+          id: state.currentGame.id,
+          savedAt: new Date().toISOString(),
+          players: players.map(p => ({
+            name: p.name.trim() || "Hráč",
+            total: total(p),
+            upper: upperSubtotal(p),
+            bonus: bonus(p),
+            lower: lowerSubtotal(p)
+          }))
+        };
+
+        const ix = state.history.findIndex(g => g.id === snapshot.id);
+        if(ix >= 0){
+          state.history[ix] = snapshot;
+          toast("Uložený výsledek byl aktualizován.");
+        } else {
+          state.history.push(snapshot);
+          toast("Výsledek uložen.");
+        }
+        saveState();
+        renderStats();
+      }
+
+      function exportData(){
+        const blob = new Blob([JSON.stringify(state,null,2)], {type:"application/json"});
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `yacht-dice-data-${new Date().toISOString().slice(0,10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      }
+
+      function resetStats(){
+        if(!confirm("Opravdu smazat všechny uložené rekordy a statistiky? Aktuální rozehraná hra zůstane.")) return;
+        state.history = [];
+        saveState();
+        renderStats();
+        toast("Statistiky smazány.");
+      }
+
+      document.getElementById("addPlayerBtn").addEventListener("click", addPlayer);
+      document.getElementById("newGameBtn").addEventListener("click", newGame);
+      document.getElementById("saveGameBtn").addEventListener("click", saveGameResult);
+      document.getElementById("exportBtn").addEventListener("click", exportData);
+      document.getElementById("resetStatsBtn").addEventListener("click", resetStats);
+
+      document.getElementById("importFile").addEventListener("change", async (e) => {
+        const file = e.target.files?.[0];
+        if(!file) return;
+        try{
+          const parsed = JSON.parse(await file.text());
+          if(!parsed?.currentGame?.players || !Array.isArray(parsed.currentGame.players)) throw new Error();
+          if(!confirm("Import nahradí současná data v této aplikaci. Pokračovat?")) return;
+          state = parsed;
+          state.history = Array.isArray(state.history) ? state.history : [];
+          saveState();
+          render();
+          toast("Data importována.");
+        }catch{
+          alert("Soubor nevypadá jako platný export z Yacht Dice.");
+        }finally{
+          e.target.value = "";
+        }
+      });
+
+      document.addEventListener("click", e => {
+        const removeBtn = e.target.closest("[data-remove-player]");
+        if(removeBtn) removePlayer(removeBtn.dataset.removePlayer);
+      });
+
+      document.addEventListener("input", e => {
+        const score = e.target.closest("[data-score-player]");
+        if(score){
+          const p = state.currentGame.players.find(p => p.id === score.dataset.scorePlayer);
+          if(!p) return;
+          const cat = score.dataset.scoreCat;
+          const val = score.value;
+
+          if(val === ""){
+            delete p.scores[cat];
+          }else{
+            let x = Math.max(0, Math.floor(Number(val) || 0));
+            const row = categories.find(r => r.id === cat);
+            if(row?.max != null) x = Math.min(row.max, x);
+            p.scores[cat] = x;
+            if(String(x) !== val) score.value = x;
+          }
+          saveState();
+
+          // Přepočet bez ztráty focusu: aktualizujeme jen součtové řádky kompletním renderem
+          // až na dalším animation frame a focus vrátíme.
+          const playerId = score.dataset.scorePlayer;
+          const catId = score.dataset.scoreCat;
+          const pos = score.selectionStart;
+          requestAnimationFrame(() => {
+            renderBody();
+            const restored = document.querySelector(`[data-score-player="${playerId}"][data-score-cat="${catId}"]`);
+            if(restored){
+              restored.focus({preventScroll:true});
+              try{ restored.setSelectionRange(pos,pos); }catch{}
+            }
+          });
+          return;
+        }
+
+        const nameInput = e.target.closest("[data-player-name]");
+        if(nameInput){
+          const p = state.currentGame.players.find(p => p.id === nameInput.dataset.playerName);
+          if(!p) return;
+          p.name = nameInput.value;
+          saveState();
+        }
+      });
+
+      document.addEventListener("change", e => {
+        const nameInput = e.target.closest("[data-player-name]");
+        if(nameInput){
+          const p = state.currentGame.players.find(p => p.id === nameInput.dataset.playerName);
+          if(!p) return;
+          p.name = nameInput.value.trim() || "Hráč";
+          saveState();
+          renderHeader();
+        }
+      });
+
+      render();
+    })();
+  </script>
+</body>
+</html>
